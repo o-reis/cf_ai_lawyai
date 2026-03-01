@@ -4,6 +4,7 @@ import { getSchedulePrompt, scheduleSchema } from "agents/schedule";
 import { AIChatAgent } from "@cloudflare/ai-chat";
 import {
   streamText,
+  generateText,
   convertToModelMessages,
   pruneMessages,
   tool,
@@ -22,11 +23,9 @@ export class ChatAgent extends AIChatAgent<Env> {
 
     const result = streamText({
       model: workersai("@cf/zai-org/glm-4.7-flash"),
-      system: `You are a helpful assistant. You can check the weather, get the user's timezone, run calculations, and schedule tasks.
-
-${getSchedulePrompt({ date: new Date() })}
-
-If the user asks to schedule a task, use the schedule tool to schedule the task.`,
+      system: `You are LawyAI, a Portuguese legal assistant. You help users understand Portuguese law.
+When a user asks a legal question, always use the searchLegalArticles tool first to find relevant legislation, then base your answer on the retrieved articles.
+Always remind the user that your answers are not a substitute for professional legal advice. NEVER use your own information, your answer must be acquired from the tool.`,
       // Prune old tool calls to save tokens on long conversations
       messages: pruneMessages({
         messages: await convertToModelMessages(this.messages),
@@ -91,55 +90,88 @@ If the user asks to schedule a task, use the schedule tool to schedule the task.
           }
         }),
 
-        scheduleTask: tool({
+        // Legal semantic search: embeds the query and retrieves relevant articles from Vectorize
+        searchLegalArticles: tool({
           description:
-            "Schedule a task to be executed at a later time. Use this when the user asks to be reminded or wants something done later.",
-          inputSchema: scheduleSchema,
-          execute: async ({ when, description }) => {
-            if (when.type === "no-schedule") {
-              return "Not a valid schedule input";
-            }
-            const input =
-              when.type === "scheduled"
-                ? when.date
-                : when.type === "delayed"
-                  ? when.delayInSeconds
-                  : when.type === "cron"
-                    ? when.cron
-                    : null;
-            if (!input) return "Invalid schedule type";
-            try {
-              this.schedule(input, "executeTask", description);
-              return `Task scheduled: "${description}" (${when.type}: ${input})`;
-            } catch (error) {
-              return `Error scheduling task: ${error}`;
-            }
-          }
-        }),
-
-        getScheduledTasks: tool({
-          description: "List all tasks that have been scheduled",
-          inputSchema: z.object({}),
-          execute: async () => {
-            const tasks = this.getSchedules();
-            return tasks.length > 0 ? tasks : "No scheduled tasks found.";
-          }
-        }),
-
-        cancelScheduledTask: tool({
-          description: "Cancel a scheduled task by its ID",
+            "Search Portuguese legal articles using semantic similarity. Use this for every legal question.",
           inputSchema: z.object({
-            taskId: z.string().describe("The ID of the task to cancel")
+            query: z
+              .string()
+              .describe("The legal question or topic to search for in Portuguese"),
+            topK: z
+              .number()
+              .min(1)
+              .max(10)
+              .default(5)
+              .describe("Number of articles to retrieve (default 5)")
           }),
-          execute: async ({ taskId }) => {
+          execute: async ({ query, topK = 5 }) => {
+            const workersai = createWorkersAI({ binding: this.env.AI });
+
+            // Multi-query: generate 3 alternative phrasings of the question,
+            // search with each, then merge results keeping the best score per article.
+            // This increases recall compared to a single embedding.
+            const { text: raw } = await generateText({
+              model: workersai("@cf/zai-org/glm-4.7-flash"),
+              prompt: `Given this legal question, produce 3 alternative search queries that approach the topic from different angles. Return ONLY a valid JSON array of 3 strings and nothing else. The alternatives should be in Portuguese european.
+
+Question: ${query}
+
+JSON array:`,
+              maxOutputTokens: 150
+            });
+
+            let queries: string[] = [query];
             try {
-              this.cancelSchedule(taskId);
-              return `Task ${taskId} cancelled.`;
-            } catch (error) {
-              return `Error cancelling task: ${error}`;
+              const parsed = JSON.parse(raw.trim());
+              if (Array.isArray(parsed)) queries = [query, ...parsed].slice(0, 4);
+            } catch { /* fallback to original query only */ }
+
+            // Embed all queries and search Vectorize, merging by best score
+            const bestScores = new Map<string, number>();
+            for (const q of queries) {
+              const embedding = await this.env.AI.run(
+                "@cf/baai/bge-m3" as Parameters<typeof this.env.AI.run>[0],
+                { text: [q] }
+              ) as { data: number[][] };
+
+              const results = await this.env.VECTORIZE.query(embedding.data[0], {
+                topK,
+                returnMetadata: "none"
+              });
+
+              for (const match of results.matches) {
+                const prev = bestScores.get(match.id) ?? -1;
+                if (match.score > prev) bestScores.set(match.id, match.score);
+              }
             }
+
+            if (!bestScores.size) {
+              return { articles: [], message: "No relevant articles found." };
+            }
+
+            // Sort merged results by score and take top-k
+            const rankedIds = [...bestScores.entries()]
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, topK)
+              .map(([id]) => id);
+
+            // Fetch matching articles from D1
+            const dbResult = await this.env.lawyaidb
+              .prepare(
+                `SELECT a.id, a.text, c.name AS category
+                 FROM Articles a
+                 JOIN Categories c ON a.category_id = c.id
+                 WHERE a.id IN (${rankedIds.join(",")})`
+              )
+              .all<{ id: number; text: string; category: string }>();
+
+            const articleMap = new Map(dbResult.results.map(a => [String(a.id), a]));
+            const articles = rankedIds.map(id => articleMap.get(id)).filter(Boolean);
+
+            return { articles };
           }
-        })
+        }),
       },
       onFinish,
       stopWhen: stepCountIs(5),
