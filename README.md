@@ -2,15 +2,15 @@
 
 ## What is LawyAI?
 
-This project consists of a website that with a AI chatbot serves as an advocacy helper for the legislation of the portuguese republic and its articles. **This is not intended to replace the lawyers' work, since the model may produce inaccuracies.** The project serves only as a first analysis to user scenarios.
+This project consists of a website with an AI chatbot that serves as an advocacy helper for the legislation of the Portuguese Republic and its articles. **This is not intended to replace the lawyers' work, since the model may produce inaccuracies.** The project serves only as a first analysis to user scenarios.
 
 ## The Coding Problem
 
-The legislation of the portuguese republic contains large files, that are difficult for human reading, with a high frequency of amendments. This need for constant update presents a significant barrier not only to human comprehension but also to traditional artificial intelligence. Standard Large Language Models (LLMs) bake knowledge into their static training weights. Consequently, their understanding of the law becomes obsolete the moment a new decree is published. Keeping LLMs with this daily training is prohibitive, has higher chance to produce errors and is inefficient. Nowadays, AI models tend to cheat when running out of other options, and this scenario can be a major risk, so making the model always state its sources is important.
+The legislation of the Portuguese Republic contains large files, that are difficult for human reading, with a high frequency of amendments. This need for constant update presents a significant barrier not only to human comprehension but also to traditional artificial intelligence. Standard Large Language Models (LLMs) bake knowledge into their static training weights. Consequently, their understanding of the law becomes obsolete the moment a new decree is published. Keeping LLMs with this daily training is prohibitive, has higher chance to produce errors and is inefficient. Nowadays, AI models tend to cheat when running out of other options, and this scenario can be a major risk, so making the model always state its sources is important.
 
 ## My Solution
 
-LawyAI is a model that unifies reasoning with information. It delivers accurate, context-aware, and fully traceable legal insights.
+LawyAI is a model that unifies reasoning with information. It delivers accurate, context-aware, and fully traceable legal insights. The project uses web scraping to gather official trustworthy legal content, stores it in a Cloudflare database and vectorizes both the user prompt and all the stored legal content to an efficient search with semantic similarity.
 
 ## Working Procedure
 
