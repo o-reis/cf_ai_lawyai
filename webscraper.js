@@ -1,3 +1,14 @@
+/**
+ * webscraper.js
+ *
+ * Scraps from https://www.pgdlisboa.pt/ all the articles 
+ * and creates DML files in the folder database_insertions
+ *
+ * Usage:
+ *   node webscraper.js
+ *
+ */
+
 import { load } from 'cheerio';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
 

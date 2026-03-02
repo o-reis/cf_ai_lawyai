@@ -1,3 +1,5 @@
+// THIS SCRIPT WAS MADE WITH THE HELP OF GEMINI 3.1 PRO
+
 /**
  * index-articles.js
  *
