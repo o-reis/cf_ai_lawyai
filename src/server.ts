@@ -1,6 +1,5 @@
 import { createWorkersAI } from "workers-ai-provider";
 import { routeAgentRequest, type Schedule } from "agents";
-import { getSchedulePrompt, scheduleSchema } from "agents/schedule";
 import { AIChatAgent } from "@cloudflare/ai-chat";
 import {
   streamText,
