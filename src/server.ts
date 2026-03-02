@@ -97,7 +97,9 @@ Always remind the user that your answers are not a substitute for professional l
           inputSchema: z.object({
             query: z
               .string()
-              .describe("The legal question or topic to search for in Portuguese"),
+              .describe(
+                "The legal question or topic to search for in Portuguese"
+              ),
             topK: z
               .number()
               .min(1)
@@ -124,21 +126,27 @@ JSON array:`,
             let queries: string[] = [query];
             try {
               const parsed = JSON.parse(raw.trim());
-              if (Array.isArray(parsed)) queries = [query, ...parsed].slice(0, 4);
-            } catch { /* fallback to original query only */ }
+              if (Array.isArray(parsed))
+                queries = [query, ...parsed].slice(0, 4);
+            } catch {
+              /* fallback to original query only */
+            }
 
             // Embed all queries and search Vectorize, merging by best score
             const bestScores = new Map<string, number>();
             for (const q of queries) {
-              const embedding = await this.env.AI.run(
+              const embedding = (await this.env.AI.run(
                 "@cf/baai/bge-m3" as Parameters<typeof this.env.AI.run>[0],
                 { text: [q] }
-              ) as { data: number[][] };
+              )) as { data: number[][] };
 
-              const results = await this.env.VECTORIZE.query(embedding.data[0], {
-                topK,
-                returnMetadata: "none"
-              });
+              const results = await this.env.VECTORIZE.query(
+                embedding.data[0],
+                {
+                  topK,
+                  returnMetadata: "none"
+                }
+              );
 
               for (const match of results.matches) {
                 const prev = bestScores.get(match.id) ?? -1;
@@ -166,12 +174,16 @@ JSON array:`,
               )
               .all<{ id: number; text: string; category: string }>();
 
-            const articleMap = new Map(dbResult.results.map(a => [String(a.id), a]));
-            const articles = rankedIds.map(id => articleMap.get(id)).filter(Boolean);
+            const articleMap = new Map(
+              dbResult.results.map((a) => [String(a.id), a])
+            );
+            const articles = rankedIds
+              .map((id) => articleMap.get(id))
+              .filter(Boolean);
 
             return { articles };
           }
-        }),
+        })
       },
       onFinish,
       stopWhen: stepCountIs(5),

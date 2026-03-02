@@ -3,10 +3,7 @@ import { useAgent } from "agents/react";
 import { useAgentChat } from "@cloudflare/ai-chat/react";
 import { isToolUIPart, getToolName } from "ai";
 import type { UIMessage } from "ai";
-import {
-  Button,
-  InputArea
-} from "@cloudflare/kumo";
+import { Button, InputArea } from "@cloudflare/kumo";
 import { Toasty, useKumoToastManager } from "@cloudflare/kumo/components/toast";
 import { Streamdown } from "streamdown";
 import {
@@ -90,7 +87,10 @@ function DisclaimerBanner() {
 // ── Tool rendering ────────────────────────────────────────────────────
 
 function SearchArticlesResult({ output }: { output: unknown }) {
-  const data = output as { articles?: { id: number; text: string; category: string }[]; message?: string } | null;
+  const data = output as {
+    articles?: { id: number; text: string; category: string }[];
+    message?: string;
+  } | null;
   const articles = data?.articles ?? [];
   const categories = [...new Set(articles.map((a) => a.category))];
   if (!articles.length) {
@@ -125,7 +125,10 @@ function ToolPartView({
   addToolApprovalResponse
 }: {
   part: UIMessage["parts"][number];
-  addToolApprovalResponse: (response: { id: string; approved: boolean }) => void;
+  addToolApprovalResponse: (response: {
+    id: string;
+    approved: boolean;
+  }) => void;
 }) {
   if (!isToolUIPart(part)) return null;
   const toolName = getToolName(part);
@@ -135,10 +138,17 @@ function ToolPartView({
     return (
       <div className="flex justify-start my-1">
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 text-xs text-kumo-inactive">
+          {isSearch ? (
+            <MagnifyingGlassIcon
+              size={13}
+              className="text-amber-500 animate-pulse"
+            />
+          ) : (
+            <GearIcon size={13} className="animate-spin" />
+          )}
           {isSearch
-            ? <MagnifyingGlassIcon size={13} className="text-amber-500 animate-pulse" />
-            : <GearIcon size={13} className="animate-spin" />}
-          {isSearch ? "Searching relevant legislation..." : `Running ${toolName}...`}
+            ? "Searching relevant legislation..."
+            : `Running ${toolName}...`}
         </div>
       </div>
     );
@@ -149,21 +159,23 @@ function ToolPartView({
       <div className="flex justify-start my-1">
         <div className="px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 max-w-[85%]">
           <div className="flex items-center gap-2 mb-1.5">
-            {isSearch
-              ? <MagnifyingGlassIcon size={13} className="text-amber-500" />
-              : <GearIcon size={13} className="text-kumo-inactive" />}
+            {isSearch ? (
+              <MagnifyingGlassIcon size={13} className="text-amber-500" />
+            ) : (
+              <GearIcon size={13} className="text-kumo-inactive" />
+            )}
             <span className="text-xs font-semibold text-kumo-default">
               {isSearch ? "Legislation retrieved" : toolName}
             </span>
             <CheckCircleIcon size={12} className="text-green-500 ml-auto" />
           </div>
-          {isSearch
-            ? <SearchArticlesResult output={part.output} />
-            : (
-              <pre className="text-[11px] text-kumo-inactive font-mono whitespace-pre-wrap overflow-auto max-h-40">
-                {JSON.stringify(part.output, null, 2)}
-              </pre>
-            )}
+          {isSearch ? (
+            <SearchArticlesResult output={part.output} />
+          ) : (
+            <pre className="text-[11px] text-kumo-inactive font-mono whitespace-pre-wrap overflow-auto max-h-40">
+              {JSON.stringify(part.output, null, 2)}
+            </pre>
+          )}
         </div>
       </div>
     );
@@ -184,12 +196,26 @@ function ToolPartView({
             {JSON.stringify(part.input, null, 2)}
           </pre>
           <div className="flex gap-2">
-            <Button variant="primary" size="sm" icon={<CheckCircleIcon size={13} />}
-              onClick={() => approvalId && addToolApprovalResponse({ id: approvalId, approved: true })}>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<CheckCircleIcon size={13} />}
+              onClick={() =>
+                approvalId &&
+                addToolApprovalResponse({ id: approvalId, approved: true })
+              }
+            >
               Approve
             </Button>
-            <Button variant="secondary" size="sm" icon={<XCircleIcon size={13} />}
-              onClick={() => approvalId && addToolApprovalResponse({ id: approvalId, approved: false })}>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<XCircleIcon size={13} />}
+              onClick={() =>
+                approvalId &&
+                addToolApprovalResponse({ id: approvalId, approved: false })
+              }
+            >
               Reject
             </Button>
           </div>
@@ -237,8 +263,8 @@ function WelcomeState({
         How can I help?
       </h2>
       <p className="text-sm text-kumo-inactive mb-8 max-w-sm">
-        Ask a legal question. I will search relevant Portuguese legislation
-        and provide an initial analysis.
+        Ask a legal question. I will search relevant Portuguese legislation and
+        provide an initial analysis.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
         {SUGGESTED_PROMPTS.map((prompt) => (
@@ -269,35 +295,53 @@ function Chat() {
     agent: "ChatAgent",
     onOpen: useCallback(() => setConnected(true), []),
     onClose: useCallback(() => setConnected(false), []),
-    onError: useCallback((error: Event) => console.error("WebSocket error:", error), []),
+    onError: useCallback(
+      (error: Event) => console.error("WebSocket error:", error),
+      []
+    ),
     onMessage: useCallback(
       (message: MessageEvent) => {
         try {
           const data = JSON.parse(String(message.data));
           if (data.type === "scheduled-task") {
-            toasts.add({ title: "Task completed", description: data.description, timeout: 0 });
+            toasts.add({
+              title: "Task completed",
+              description: data.description,
+              timeout: 0
+            });
           }
-        } catch { /* not our event */ }
+        } catch {
+          /* not our event */
+        }
       },
       [toasts]
     )
   });
 
-  const { messages, sendMessage, clearHistory, addToolApprovalResponse, stop, status } =
-    useAgentChat({
-      agent,
-      onToolCall: async (event) => {
-        if ("addToolOutput" in event && event.toolCall.toolName === "getUserTimezone") {
-          event.addToolOutput({
-            toolCallId: event.toolCall.toolCallId,
-            output: {
-              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-              localTime: new Date().toLocaleTimeString()
-            }
-          });
-        }
+  const {
+    messages,
+    sendMessage,
+    clearHistory,
+    addToolApprovalResponse,
+    stop,
+    status
+  } = useAgentChat({
+    agent,
+    onToolCall: async (event) => {
+      if (
+        "addToolOutput" in event &&
+        event.toolCall.toolName === "getUserTimezone"
+      ) {
+        event.addToolOutput({
+          toolCallId: event.toolCall.toolCallId,
+          output: {
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            localTime: new Date().toLocaleTimeString()
+          }
+        });
       }
-    });
+    }
+  });
 
   const isStreaming = status === "streaming" || status === "submitted";
 
@@ -327,7 +371,6 @@ function Chat() {
 
   return (
     <div className="flex flex-col h-screen bg-kumo-elevated">
-
       {/* ── Header ── */}
       <header className="shrink-0 bg-slate-900 border-b border-slate-700/60 shadow-lg">
         <div className="max-w-3xl mx-auto px-5 py-3 flex items-center justify-between">
@@ -376,16 +419,19 @@ function Chat() {
       {/* ── Messages ── */}
       <div className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
-          <WelcomeState onPrompt={sendPrompt} disabled={isStreaming || !connected} />
+          <WelcomeState
+            onPrompt={sendPrompt}
+            disabled={isStreaming || !connected}
+          />
         ) : (
           <div className="max-w-3xl mx-auto px-5 py-6 space-y-4">
             {messages.map((message: UIMessage, index: number) => {
               const isUser = message.role === "user";
-              const isLastAssistant = message.role === "assistant" && index === messages.length - 1;
+              const isLastAssistant =
+                message.role === "assistant" && index === messages.length - 1;
 
               return (
                 <div key={message.id} className="space-y-1">
-
                   {/* Tool parts */}
                   {message.parts.filter(isToolUIPart).map((part) => (
                     <ToolPartView
@@ -398,23 +444,45 @@ function Chat() {
                   {/* Reasoning parts */}
                   {message.parts
                     .filter(
-                      (p) => p.type === "reasoning" && (p as { text?: string }).text?.trim()
+                      (p) =>
+                        p.type === "reasoning" &&
+                        (p as { text?: string }).text?.trim()
                     )
                     .map((p, i) => {
-                      const r = p as { type: "reasoning"; text: string; state?: "streaming" | "done" };
+                      const r = p as {
+                        type: "reasoning";
+                        text: string;
+                        state?: "streaming" | "done";
+                      };
                       const done = r.state === "done" || !isStreaming;
                       return (
                         <div key={i} className="flex justify-start my-1">
                           <details className="max-w-[85%] w-full" open={!done}>
                             <summary className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-xl bg-purple-500/8 border border-purple-500/20 text-sm select-none">
-                              <BrainIcon size={13} className="text-purple-400" />
-                              <span className="text-xs font-medium text-kumo-default">Reasoning</span>
-                              {done
-                                ? <span className="text-[11px] text-emerald-500">Done</span>
-                                : <span className="text-[11px] text-kumo-brand flex items-center gap-1">
-                                    <CircleNotchIcon size={11} className="animate-spin" /> Thinking...
-                                  </span>}
-                              <CaretDownIcon size={13} className="ml-auto text-kumo-inactive" />
+                              <BrainIcon
+                                size={13}
+                                className="text-purple-400"
+                              />
+                              <span className="text-xs font-medium text-kumo-default">
+                                Reasoning
+                              </span>
+                              {done ? (
+                                <span className="text-[11px] text-emerald-500">
+                                  Done
+                                </span>
+                              ) : (
+                                <span className="text-[11px] text-kumo-brand flex items-center gap-1">
+                                  <CircleNotchIcon
+                                    size={11}
+                                    className="animate-spin"
+                                  />{" "}
+                                  Thinking...
+                                </span>
+                              )}
+                              <CaretDownIcon
+                                size={13}
+                                className="ml-auto text-kumo-inactive"
+                              />
                             </summary>
                             <pre className="mt-1.5 px-3 py-2.5 rounded-xl bg-kumo-control text-xs text-kumo-default whitespace-pre-wrap overflow-auto max-h-56">
                               {r.text}
@@ -425,37 +493,43 @@ function Chat() {
                     })}
 
                   {/* Text parts */}
-                  {message.parts.filter((p) => p.type === "text").map((p, i) => {
-                    const text = (p as { type: "text"; text: string }).text;
-                    if (!text) return null;
+                  {message.parts
+                    .filter((p) => p.type === "text")
+                    .map((p, i) => {
+                      const text = (p as { type: "text"; text: string }).text;
+                      if (!text) return null;
 
-                    if (isUser) {
+                      if (isUser) {
+                        return (
+                          <div key={i} className="flex justify-end">
+                            <div className="max-w-[80%] px-4 py-2.5 rounded-2xl rounded-br-sm bg-indigo-600 text-white text-sm leading-relaxed shadow-sm">
+                              {text}
+                            </div>
+                          </div>
+                        );
+                      }
+
                       return (
-                        <div key={i} className="flex justify-end">
-                          <div className="max-w-[80%] px-4 py-2.5 rounded-2xl rounded-br-sm bg-indigo-600 text-white text-sm leading-relaxed shadow-sm">
-                            {text}
+                        <div key={i} className="flex justify-start gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shrink-0 mt-1 shadow-sm">
+                            <ScalesIcon
+                              size={14}
+                              weight="fill"
+                              className="text-slate-900"
+                            />
+                          </div>
+                          <div className="max-w-[80%] rounded-2xl rounded-bl-sm bg-kumo-base shadow-sm border border-kumo-line/60 text-kumo-default leading-relaxed overflow-hidden">
+                            <Streamdown
+                              className="sd-theme p-4"
+                              controls={false}
+                              isAnimating={isLastAssistant && isStreaming}
+                            >
+                              {text}
+                            </Streamdown>
                           </div>
                         </div>
                       );
-                    }
-
-                    return (
-                      <div key={i} className="flex justify-start gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shrink-0 mt-1 shadow-sm">
-                          <ScalesIcon size={14} weight="fill" className="text-slate-900" />
-                        </div>
-                        <div className="max-w-[80%] rounded-2xl rounded-bl-sm bg-kumo-base shadow-sm border border-kumo-line/60 text-kumo-default leading-relaxed overflow-hidden">
-                          <Streamdown
-                            className="sd-theme p-4"
-                            controls={false}
-                            isAnimating={isLastAssistant && isStreaming}
-                          >
-                            {text}
-                          </Streamdown>
-                        </div>
-                      </div>
-                    );
-                  })}
+                    })}
                 </div>
               );
             })}
@@ -467,7 +541,10 @@ function Chat() {
       {/* ── Input ── */}
       <div className="shrink-0 border-t border-kumo-line bg-kumo-base">
         <form
-          onSubmit={(e) => { e.preventDefault(); send(); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            send();
+          }}
           className="max-w-3xl mx-auto px-5 pt-4 pb-3"
         >
           <div className="flex items-end gap-2 rounded-2xl border border-kumo-line bg-kumo-elevated px-3 py-2.5 shadow-sm focus-within:ring-2 focus-within:ring-amber-500/40 focus-within:border-amber-500/40 transition-all">
@@ -476,7 +553,10 @@ function Chat() {
               value={input}
               onValueChange={setInput}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
               }}
               onInput={(e) => {
                 const el = e.currentTarget;
@@ -515,7 +595,6 @@ function Chat() {
           </p>
         </form>
       </div>
-
     </div>
   );
 }
@@ -526,7 +605,10 @@ export default function App() {
       <Suspense
         fallback={
           <div className="flex items-center justify-center h-screen text-kumo-inactive">
-            <ScalesIcon size={28} className="text-amber-500 animate-pulse mr-3" />
+            <ScalesIcon
+              size={28}
+              className="text-amber-500 animate-pulse mr-3"
+            />
             Loading...
           </div>
         }

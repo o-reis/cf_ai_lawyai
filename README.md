@@ -26,7 +26,7 @@ The workflow of the app is:
 5. The server script then requests all the articles and relevant official content that may be informative and relevant (have matching vectors).
 6. With all information gathered, the server loads another AI model and gives all the necessary context.
 7. The server returns the model answer to the user via the website.
-  
+
 ## Requisites
 
 The requisites are basic since Cloudflare handles most of the hard work.
@@ -41,7 +41,7 @@ After initiating the server with `npx wrangler dev`, go to <http://localhost:878
 
 ## Demonstration Video
 
-*The video is in portuguese.*
+_The video is in portuguese._
 
 ![Demonstration](demonstration/demonstration_video.mp4)
 
