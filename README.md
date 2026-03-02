@@ -34,6 +34,16 @@ The requisites are basic since Cloudflare handles most of the hard work.
 - Node.js
 - Git
 - A code editor
+- You should create a `.env` file with the following format:
+
+``
+WORKER_URL=
+INDEXING_SECRET=
+USER_API=
+USER_ID=
+DB_ID=
+``
+
 
 ## Usage
 
@@ -43,7 +53,9 @@ After initiating the server with `npx wrangler dev`, go to <http://localhost:878
 
 _The video is in portuguese._
 
-![Demonstration](demonstration/demonstration_video.mp4)
+https://github.com/user-attachments/assets/e5eddd56-76ef-4eef-8a93-af4a01d0a102
+
+
 
 ## Credits
 
